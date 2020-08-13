@@ -11,9 +11,12 @@ ARG USER_GID=$USER_UID
 
 # Install needed packages and setup non-root user. Use a separate RUN statement to add your own dependencies.
 COPY library-scripts/*.sh /tmp/library-scripts/
+
+RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
+
 RUN apt-get update \
     && /bin/bash /tmp/library-scripts/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" \
-    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install Go tools
 ARG GO_TOOLS_WITH_MODULES="\
@@ -43,19 +46,21 @@ RUN mkdir -p /tmp/gotools \
     && export GOPATH=/tmp/gotools \
     # Go tools w/module support
     && export GO111MODULE=on \
+    && export GOPROXY=https://goproxy.io \
     && (echo "${GO_TOOLS_WITH_MODULES}" | xargs -n 1 go get -x )2>&1 \
     # gocode-gomod
     && export GO111MODULE=auto \
     && go get -x -d github.com/stamblerre/gocode 2>&1 \
     && go build -o gocode-gomod github.com/stamblerre/gocode \
     # golangci-lint
-    && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin 2>&1 \
+    && cat /tmp/library-scripts/install-golangci-lint.sh  | sh -s -- -b /usr/local/bin 2>&1 \
     # Move Go tools into path and clean up
     && mv /tmp/gotools/bin/* /usr/local/bin/ \
     && mv gocode-gomod /usr/local/bin/ \
     && rm -rf /tmp/gotools
 
-ENV GO111MODULE=auto
+RUN go env -w GO111MODULE=on
+RUN go env -w GOPROXY=https://goproxy.io,direct
 
 # [Optional] Uncomment the next line to use go get to install anything else you need
 # RUN go get -x <your-dependency-or-tool>
@@ -63,3 +68,5 @@ ENV GO111MODULE=auto
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #     && apt-get -y install --no-install-recommends <your-package-list-here>
+
+RUN rm -rf /tmp/library-scripts

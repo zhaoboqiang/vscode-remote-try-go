@@ -150,7 +150,7 @@ fi
 if [ "${INSTALL_ZSH}" = "true" ] && [ ! -d "/root/.oh-my-zsh" ] && [ "${ZSH_ALREADY_INSTALLED}" != "true" ]; then
     apt-get-update-if-needed
     apt-get install -y zsh
-    curl -fsSLo- https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh | bash 2>&1
+    sh /tmp/library-scripts/install-ohmyzsh.sh
     echo "export PATH=\$PATH:\$HOME/.local/bin" >> /root/.zshrc
     if [ "${USERNAME}" != "root" ]; then
         cp -fR /root/.oh-my-zsh /home/$USERNAME
